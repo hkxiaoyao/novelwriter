@@ -18,6 +18,7 @@ import logging
 
 from app.models import Novel, Chapter, Outline, Continuation
 from app.core.ai_client import ai_client
+from app.core.continuation_text import format_chapter_heading_for_prompt, format_next_chapter_reference
 from app.core.lore_manager import LoreManager
 from app.core.cache import cache_manager
 from app.core.text import PromptKey, get_prompt
@@ -136,8 +137,11 @@ async def generate_outline(
     prompt_locale = resolve_prompt_locale(novel_language=getattr(novel, "language", None))
 
     content = "\n\n".join(
-        get_snippet(SnippetKey.CHAPTER_HEADING_FMT, prompt_locale).format(
-            n=ch.chapter_number, title=ch.title,
+        format_chapter_heading_for_prompt(
+            ch.chapter_number,
+            ch.title,
+            locale=prompt_locale,
+            source_chapter_label=getattr(ch, "source_chapter_label", None),
         ) + f"\n{ch.content[:1000]}..."
         for ch in chapters
     )
@@ -236,9 +240,13 @@ async def _build_continuation_prompt(
         .all()
     )
 
-    chapter_heading_fmt = get_snippet(SnippetKey.CHAPTER_HEADING_FMT, prompt_locale)
     recent_content = "\n\n".join(
-        chapter_heading_fmt.format(n=ch.chapter_number, title=ch.title) + f"\n{ch.content}"
+        format_chapter_heading_for_prompt(
+            ch.chapter_number,
+            ch.title,
+            locale=prompt_locale,
+            source_chapter_label=getattr(ch, "source_chapter_label", None),
+        ) + f"\n{ch.content}"
         for ch in recent_chapters
     )
 
@@ -249,6 +257,13 @@ async def _build_continuation_prompt(
     ) if outlines else get_snippet(SnippetKey.NO_OUTLINE, prompt_locale)
 
     next_chapter = get_next_missing_chapter_number(db, novel_id)
+    latest_recent_chapter = recent_chapters[-1]
+    next_chapter_reference = format_next_chapter_reference(
+        next_chapter,
+        latest_source_chapter_label=getattr(latest_recent_chapter, "source_chapter_label", None),
+        latest_source_chapter_number=getattr(latest_recent_chapter, "source_chapter_number", None),
+        locale=prompt_locale,
+    )
 
     world_context_section = ""
     if use_core_memory and world_context and world_context.strip():
@@ -304,6 +319,7 @@ async def _build_continuation_prompt(
     generation_prompt = get_prompt(PromptKey.CONTINUATION, locale=prompt_locale).format(
         title=novel.title,
         next_chapter=next_chapter,
+        next_chapter_reference=next_chapter_reference,
         outline=outline_content,
         world_context=combined_context,
         narrative_constraints=f"\n{constraints_section}\n" if constraints_section else "",
@@ -317,7 +333,10 @@ async def _build_continuation_prompt(
     # tail of the prompt exploits this inertia so the model's first tokens
     # naturally match the original register.
     style_anchor = get_snippet(SnippetKey.STYLE_ANCHOR, prompt_locale)
-    continue_instruction = get_snippet(SnippetKey.CONTINUE_INSTRUCTION, prompt_locale).format(n=next_chapter)
+    continue_instruction = get_snippet(SnippetKey.CONTINUE_INSTRUCTION, prompt_locale).format(
+        n=next_chapter,
+        reference=next_chapter_reference,
+    )
     generation_prompt += (
         f"\n{style_anchor}\n\n"
         f"<recent_chapters>\n{recent_content}\n</recent_chapters>\n"
@@ -326,6 +345,7 @@ async def _build_continuation_prompt(
 
     return generation_prompt, effective_max_tokens, {
         "next_chapter": next_chapter,
+        "next_chapter_reference": next_chapter_reference,
         "novel_language": getattr(novel, "language", None),
         "system_prompt": _build_system_prompt(length_guidance, prompt_locale=prompt_locale),
     }

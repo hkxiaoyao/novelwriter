@@ -32,6 +32,8 @@ export interface ChapterMeta {
   novel_id: number
   chapter_number: number
   title: string
+  source_chapter_label: string | null
+  source_chapter_number: number | null
   created_at: string
 }
 
@@ -40,6 +42,8 @@ export interface Chapter {
   novel_id: number
   chapter_number: number
   title: string
+  source_chapter_label: string | null
+  source_chapter_number: number | null
   content: string
   created_at: string
   updated_at: string | null

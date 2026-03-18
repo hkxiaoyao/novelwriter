@@ -45,9 +45,9 @@ _TEMPLATES: dict[PromptKey, str] = {
     # ------------------------------------------------------------------
     # Continuation: user message template
     # ------------------------------------------------------------------
-    PromptKey.CONTINUATION: """<novel_info>
+PromptKey.CONTINUATION: """<novel_info>
 书名：{title}
-待续章节：第{next_chapter}章
+待续章节：{next_chapter_reference}
 </novel_info>
 
 <outline>

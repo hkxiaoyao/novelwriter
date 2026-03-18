@@ -444,13 +444,15 @@ async def upload_novel(
     db.commit()
     db.refresh(novel)
 
-    # Save chapters
-    for chapter_num, chapter_title, chapter_content in chapters:
+    # Save chapters using stable internal numbering plus preserved source labels.
+    for chapter_number, parsed_chapter in enumerate(chapters, start=1):
         chapter = Chapter(
             novel_id=novel.id,
-            chapter_number=chapter_num,
-            title=chapter_title,
-            content=chapter_content,
+            chapter_number=chapter_number,
+            title=parsed_chapter.title,
+            source_chapter_label=parsed_chapter.source_chapter_label,
+            source_chapter_number=parsed_chapter.source_chapter_number,
+            content=parsed_chapter.content,
         )
         db.add(chapter)
 
@@ -577,6 +579,8 @@ def get_chapters_meta(
             Chapter.novel_id,
             Chapter.chapter_number,
             Chapter.title,
+            Chapter.source_chapter_label,
+            Chapter.source_chapter_number,
             Chapter.created_at,
         )
         .filter(Chapter.novel_id == novel_id)
@@ -592,6 +596,8 @@ def get_chapters_meta(
             novel_id=r.novel_id,
             chapter_number=r.chapter_number,
             title=r.title,
+            source_chapter_label=r.source_chapter_label,
+            source_chapter_number=r.source_chapter_number,
             created_at=r.created_at,
         )
         for r in rows

@@ -77,6 +77,8 @@ class TestCreateChapter:
         data = resp.json()
         assert data["chapter_number"] == 3
         assert data["title"] == "第三章"
+        assert data["source_chapter_label"] is None
+        assert data["source_chapter_number"] is None
         assert data["content"] == "内容三"
         assert data["novel_id"] == novel.id
         assert "updated_at" in data
@@ -92,6 +94,8 @@ class TestCreateChapter:
         assert resp.status_code == 201
         data = resp.json()
         assert data["chapter_number"] == 3  # total_chapters was 2
+        assert data["source_chapter_label"] is None
+        assert data["source_chapter_number"] is None
 
         db.refresh(novel)
         assert novel.total_chapters == 3
@@ -128,6 +132,29 @@ class TestCreateChapter:
         )
         assert resp.status_code == 409
 
+    def test_get_chapters_meta_preserves_source_metadata(self, client, db, novel):
+        db.add(
+            Chapter(
+                novel_id=novel.id,
+                chapter_number=3,
+                title="归来",
+                source_chapter_label="第844章 归来",
+                source_chapter_number=844,
+                content="内容三",
+            )
+        )
+        novel.total_chapters = 3
+        db.commit()
+
+        resp = client.get(f"/api/novels/{novel.id}/chapters/meta")
+
+        assert resp.status_code == 200
+        payload = resp.json()
+        chapter_meta = next(item for item in payload if item["chapter_number"] == 3)
+        assert chapter_meta["title"] == "归来"
+        assert chapter_meta["source_chapter_label"] == "第844章 归来"
+        assert chapter_meta["source_chapter_number"] == 844
+
 
 class TestUpdateChapter:
     def test_update_chapter(self, client, db, novel):
@@ -138,6 +165,8 @@ class TestUpdateChapter:
         assert resp.status_code == 200
         data = resp.json()
         assert data["title"] == "新标题"
+        assert data["source_chapter_label"] is None
+        assert data["source_chapter_number"] is None
         assert data["content"] == "新内容"
         assert data["chapter_number"] == 1
 

@@ -71,12 +71,14 @@ def seed_demo_novel(db: Session, user: User) -> int | None:
     db.add(novel)
     db.flush()  # get novel.id before inserting chapters
 
-    for chapter_num, chapter_title, chapter_content in chapters:
+    for chapter_number, parsed_chapter in enumerate(chapters, start=1):
         db.add(Chapter(
             novel_id=novel.id,
-            chapter_number=chapter_num,
-            title=chapter_title,
-            content=chapter_content,
+            chapter_number=chapter_number,
+            title=parsed_chapter.title,
+            source_chapter_label=parsed_chapter.source_chapter_label,
+            source_chapter_number=parsed_chapter.source_chapter_number,
+            content=parsed_chapter.content,
         ))
     db.flush()
 

@@ -4,12 +4,12 @@ import type { NovelShellStage } from '@/components/novel-shell/NovelShellRouteSt
 
 export function StudioModeRailSection({
   activeStage,
-  latestChapterNum,
+  latestChapterReference,
   onContinuation,
   onOpenAtlas,
 }: {
   activeStage: NovelShellStage | null
-  latestChapterNum: number | null
+  latestChapterReference: string | null
   onContinuation: () => void
   onOpenAtlas: () => void
 }) {
@@ -20,7 +20,7 @@ export function StudioModeRailSection({
       </div>
 
       <div className="space-y-1.5">
-        {latestChapterNum !== null ? (
+        {latestChapterReference !== null ? (
           <button
             type="button"
             onClick={onContinuation}
@@ -37,7 +37,7 @@ export function StudioModeRailSection({
             <div className="min-w-0">
               <div className="text-[13px] font-medium">续写设置</div>
               <div className="mt-0.5 text-[11px] text-muted-foreground">
-                基于第 {latestChapterNum} 章配置下一次续写
+                基于{latestChapterReference}配置下一次续写
               </div>
             </div>
           </button>

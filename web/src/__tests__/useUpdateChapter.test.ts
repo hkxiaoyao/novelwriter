@@ -28,6 +28,8 @@ describe('useUpdateChapter', () => {
       novel_id: novelId,
       chapter_number: chapterNum,
       title: '旧标题',
+      source_chapter_label: '第3章 旧标题',
+      source_chapter_number: 3,
       content: '旧正文',
       created_at: '2026-02-01T00:00:00Z',
       updated_at: null,
@@ -37,6 +39,8 @@ describe('useUpdateChapter', () => {
       novel_id: novelId,
       chapter_number: chapterNum,
       title: '旧标题',
+      source_chapter_label: '第3章 旧标题',
+      source_chapter_number: 3,
       created_at: '2026-02-01T00:00:00Z',
     }]
     const updatedChapter = {
@@ -44,6 +48,8 @@ describe('useUpdateChapter', () => {
       novel_id: novelId,
       chapter_number: chapterNum,
       title: payload.title,
+      source_chapter_label: '第3章 旧标题',
+      source_chapter_number: 3,
       content: payload.content,
       created_at: '2026-02-01T00:00:00Z',
       updated_at: '2026-02-02T00:00:00Z',
@@ -81,6 +87,8 @@ describe('useUpdateChapter', () => {
     expect(queryClient.getQueryData(novelKeys.chaptersMeta(novelId))).toMatchObject([{
       chapter_number: chapterNum,
       title: payload.title,
+      source_chapter_label: initialMeta[0].source_chapter_label,
+      source_chapter_number: initialMeta[0].source_chapter_number,
     }])
 
     resolveUpdate!(updatedChapter)
@@ -93,6 +101,8 @@ describe('useUpdateChapter', () => {
     expect(queryClient.getQueryData(novelKeys.chaptersMeta(novelId))).toMatchObject([{
       chapter_number: chapterNum,
       title: updatedChapter.title,
+      source_chapter_label: updatedChapter.source_chapter_label,
+      source_chapter_number: updatedChapter.source_chapter_number,
     }])
   })
 
@@ -105,6 +115,8 @@ describe('useUpdateChapter', () => {
       novel_id: novelId,
       chapter_number: chapterNum,
       title: '旧标题',
+      source_chapter_label: '第3章 旧标题',
+      source_chapter_number: 3,
       content: '旧正文',
       created_at: '2026-02-01T00:00:00Z',
       updated_at: null,
@@ -114,6 +126,8 @@ describe('useUpdateChapter', () => {
       novel_id: novelId,
       chapter_number: chapterNum,
       title: '旧标题',
+      source_chapter_label: '第3章 旧标题',
+      source_chapter_number: 3,
       created_at: '2026-02-01T00:00:00Z',
     }]
     let rejectUpdate: (e: unknown) => void

@@ -117,11 +117,12 @@ def test_register_templates_overwrites_individual_key() -> None:
 
 def test_continuation_template_has_expected_placeholders() -> None:
     tpl = get_prompt(PromptKey.CONTINUATION)
-    # generator.py calls .format(title=..., next_chapter=..., outline=...,
-    #                            world_context=..., narrative_constraints=...)
+    # generator.py calls .format(title=..., next_chapter=..., next_chapter_reference=...,
+    #                            outline=..., world_context=..., narrative_constraints=...)
     formatted = tpl.format(
         title="Test Novel",
         next_chapter=42,
+        next_chapter_reference="Chapter 42",
         outline="outline text",
         world_context="",
         narrative_constraints="",

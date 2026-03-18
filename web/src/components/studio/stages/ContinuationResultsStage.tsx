@@ -32,12 +32,14 @@ interface VariantState {
 export function ContinuationResultsStage({
   novelId,
   activeChapterNum,
+  activeChapterReference,
   showInjectionSummaryRail,
   onToggleInjectionSummaryRail,
   onDebugChange,
 }: {
   novelId: number
   activeChapterNum: number | null
+  activeChapterReference?: string | null
   showInjectionSummaryRail: boolean
   onToggleInjectionSummaryRail: () => void
   onDebugChange: (debug: ContinueDebugSummary | null) => void
@@ -515,8 +517,8 @@ export function ContinuationResultsStage({
                   续写结果
                 </span>
                 {activeChapterNum !== null ? (
-                  <span className="inline-flex items-center rounded-full border border-[var(--nw-glass-border)] bg-background/20 px-2.5 py-1 text-[11px] text-muted-foreground">
-                    第 {activeChapterNum} 章续写
+                <span className="inline-flex items-center rounded-full border border-[var(--nw-glass-border)] bg-background/20 px-2.5 py-1 text-[11px] text-muted-foreground">
+                    {(activeChapterReference ?? `第 ${activeChapterNum} 章`)}续写
                   </span>
                 ) : null}
                 {isStreamMode && !isDone ? (

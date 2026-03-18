@@ -45,9 +45,9 @@ Characters may hold false beliefs; you must faithfully preserve those false beli
     # ------------------------------------------------------------------
     # Continuation: user message template
     # ------------------------------------------------------------------
-    PromptKey.CONTINUATION: """<novel_info>
+PromptKey.CONTINUATION: """<novel_info>
 Title: {title}
-Chapter to continue: Chapter {next_chapter}
+Chapter to continue: {next_chapter_reference}
 </novel_info>
 
 <outline>

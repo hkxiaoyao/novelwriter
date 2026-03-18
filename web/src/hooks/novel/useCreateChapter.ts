@@ -16,6 +16,8 @@ export function useCreateChapter(novelId: number) {
           novel_id: created.novel_id,
           chapter_number: created.chapter_number,
           title: created.title,
+          source_chapter_label: created.source_chapter_label,
+          source_chapter_number: created.source_chapter_number,
           created_at: created.created_at,
         }
         const filtered = old.filter((meta) => meta.chapter_number !== created.chapter_number)
@@ -25,7 +27,7 @@ export function useCreateChapter(novelId: number) {
         if (!old) return old
         return {
           ...old,
-          total_chapters: Math.max(old.total_chapters, created.chapter_number),
+          total_chapters: old.total_chapters + 1,
         }
       })
       qc.invalidateQueries({ queryKey: novelKeys.chaptersMeta(novelId) })

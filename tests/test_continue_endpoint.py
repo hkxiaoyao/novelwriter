@@ -460,3 +460,32 @@ async def test_build_continuation_prompt_uses_novel_language_for_prompt_locale(d
     assert (PromptKey.CONTINUATION, "en-us") in seen_locales
     assert (PromptKey.SYSTEM, "en-us") in seen_locales
     assert build_info["system_prompt"].startswith("system prompt")
+
+
+@pytest.mark.asyncio
+async def test_build_continuation_prompt_uses_internal_chapter_reference_even_with_source_metadata(db, novel):
+    from app.core import generator as generator_mod
+
+    latest_chapter = (
+        db.query(Chapter)
+        .filter(Chapter.novel_id == novel.id, Chapter.chapter_number == 2)
+        .one()
+    )
+    latest_chapter.title = "归来"
+    latest_chapter.source_chapter_label = "第844章 归来"
+    latest_chapter.source_chapter_number = 844
+    db.commit()
+
+    prompt, _max_tokens, build_info = await generator_mod._build_continuation_prompt(
+        db,
+        novel.id,
+        use_core_memory=False,
+        use_lorebook=False,
+        context_chapters=2,
+    )
+
+    assert "待续章节：第3章" in prompt
+    assert "请续写第3章：" in prompt
+    assert "【第2章：归来】" in prompt
+    assert build_info["next_chapter"] == 3
+    assert build_info["next_chapter_reference"] == "第3章"

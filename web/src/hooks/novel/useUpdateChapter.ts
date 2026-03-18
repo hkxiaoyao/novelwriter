@@ -46,7 +46,16 @@ export function useUpdateChapter(novelId: number, chapterNum: number) {
       qc.setQueryData<Chapter>(novelKeys.chapter(novelId, chapterNum), updated)
       qc.setQueryData<ChapterMeta[]>(novelKeys.chaptersMeta(novelId), (old) => {
         if (!old) return old
-        return old.map((m) => (m.chapter_number === chapterNum ? { ...m, title: updated.title } : m))
+        return old.map((m) => (
+          m.chapter_number === chapterNum
+            ? {
+                ...m,
+                title: updated.title,
+                source_chapter_label: updated.source_chapter_label,
+                source_chapter_number: updated.source_chapter_number,
+              }
+            : m
+        ))
       })
     },
   })

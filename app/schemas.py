@@ -73,6 +73,8 @@ class ChapterResponse(BaseModel):
     novel_id: int
     chapter_number: int
     title: str
+    source_chapter_label: str | None = None
+    source_chapter_number: int | None = None
     content: str
     created_at: datetime
     updated_at: datetime | None = None
@@ -85,6 +87,8 @@ class ChapterMetaResponse(BaseModel):
     novel_id: int
     chapter_number: int
     title: str
+    source_chapter_label: str | None = None
+    source_chapter_number: int | None = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

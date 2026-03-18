@@ -36,6 +36,7 @@ logger = logging.getLogger(__name__)
 _HEAD_REVISION = "head"
 _PRE_NOVEL_LANGUAGE_REVISION = "022"
 _PRE_DERIVED_ASSET_JOB_REVISION = "029"
+_PRE_CHAPTER_SOURCE_METADATA_REVISION = "030"
 _CORE_TABLES = {"novels", "chapters"}
 _LEGACY_TABLES = {
     "narrative_events",
@@ -49,6 +50,7 @@ _LEGACY_TABLES = {
     "plot_beats",
 }
 _REQUIRED_SCHEMA_COLUMNS: dict[str, set[str]] = {
+    "chapters": {"source_chapter_label", "source_chapter_number"},
     "novels": {
         "owner_id",
         "window_index",
@@ -81,6 +83,19 @@ _REQUIRED_SCHEMA_COLUMNS: dict[str, set[str]] = {
 }
 _UNVERSIONED_AUTO_UPGRADE_BASELINES: tuple[tuple[str, dict[str, set[str]]], ...] = (
     (
+        _PRE_CHAPTER_SOURCE_METADATA_REVISION,
+        {
+            "chapters": _REQUIRED_SCHEMA_COLUMNS["chapters"],
+        },
+    ),
+    (
+        _PRE_DERIVED_ASSET_JOB_REVISION,
+        {
+            "chapters": _REQUIRED_SCHEMA_COLUMNS["chapters"],
+            "derived_asset_jobs": _REQUIRED_SCHEMA_COLUMNS["derived_asset_jobs"],
+        },
+    ),
+    (
         _PRE_NOVEL_LANGUAGE_REVISION,
         {
             "novels": {
@@ -90,12 +105,7 @@ _UNVERSIONED_AUTO_UPGRADE_BASELINES: tuple[tuple[str, dict[str, set[str]]], ...]
                 "window_index_built_revision",
                 "window_index_error",
             },
-            "derived_asset_jobs": _REQUIRED_SCHEMA_COLUMNS["derived_asset_jobs"],
-        },
-    ),
-    (
-        _PRE_DERIVED_ASSET_JOB_REVISION,
-        {
+            "chapters": _REQUIRED_SCHEMA_COLUMNS["chapters"],
             "derived_asset_jobs": _REQUIRED_SCHEMA_COLUMNS["derived_asset_jobs"],
         },
     ),
@@ -154,9 +164,7 @@ def _matching_unversioned_upgrade_baseline(missing_columns: dict[str, set[str]])
         }
         if unexpected_missing:
             continue
-
-        if all(allowed_missing.get(table_name, set()) <= missing_columns.get(table_name, set()) for table_name in allowed_missing):
-            return baseline_revision
+        return baseline_revision
 
     return None
 

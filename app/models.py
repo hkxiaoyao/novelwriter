@@ -65,6 +65,8 @@ class Chapter(Base):
     novel_id = Column(Integer, ForeignKey("novels.id"), nullable=False)
     chapter_number = Column(Integer, nullable=False)
     title = Column(String(255), default="")
+    source_chapter_label = Column(String(255), nullable=True)
+    source_chapter_number = Column(Integer, nullable=True)
     content = Column(Text, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())

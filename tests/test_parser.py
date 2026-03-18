@@ -1,4 +1,4 @@
-"""Tests for app/core/parser.py — novel file parsing and Chinese numeral conversion."""
+"""Tests for app/core/parser.py — structured novel chapter parsing."""
 
 import pytest
 import tempfile
@@ -33,9 +33,8 @@ def test_thousands():
     assert chinese_to_arabic("一千") == 1000
 
 
-def test_empty_returns_one():
-    # No valid chars → result=0 → returns 1
-    assert chinese_to_arabic("") == 1
+def test_empty_returns_none():
+    assert chinese_to_arabic("") is None
 
 
 # --- parse_novel_file ---
@@ -58,9 +57,10 @@ def test_no_chapter_markers():
     try:
         result = parse_novel_file(path)
         assert len(result) == 1
-        assert result[0][0] == 1
-        assert result[0][1] == "Chapter 1"
-        assert "Just some text" in result[0][2]
+        assert result[0].title == ""
+        assert result[0].source_chapter_label is None
+        assert result[0].source_chapter_number is None
+        assert "Just some text" in result[0].content
     finally:
         os.unlink(path)
 
@@ -70,7 +70,8 @@ def test_no_chapter_markers_uses_language_localized_fallback_title():
     try:
         result = parse_novel_file(path, language="ja")
         assert len(result) == 1
-        assert result[0][1] == "第1章"
+        assert result[0].title == ""
+        assert result[0].source_chapter_label is None
     finally:
         os.unlink(path)
 
@@ -81,12 +82,14 @@ def test_chinese_chapter_format():
     try:
         result = parse_novel_file(path)
         assert len(result) == 2
-        assert result[0][0] == 1
-        assert "第一章" in result[0][1]
-        assert "第一章的内容" in result[0][2]
-        assert result[1][0] == 2
-        assert "第二章" in result[1][1]
-        assert "第二章的内容" in result[1][2]
+        assert result[0].source_chapter_label == "第一章 开端"
+        assert result[0].source_chapter_number == 1
+        assert result[0].title == "开端"
+        assert "第一章的内容" in result[0].content
+        assert result[1].source_chapter_label == "第二章 发展"
+        assert result[1].source_chapter_number == 2
+        assert result[1].title == "发展"
+        assert "第二章的内容" in result[1].content
     finally:
         os.unlink(path)
 
@@ -97,8 +100,10 @@ def test_english_chapter_format():
     try:
         result = parse_novel_file(path)
         assert len(result) == 2
-        assert "Chapter 1" in result[0][1]
-        assert "First chapter content" in result[0][2]
+        assert result[0].source_chapter_label == "Chapter 1 Beginning"
+        assert result[0].source_chapter_number == 1
+        assert result[0].title == "Beginning"
+        assert "First chapter content" in result[0].content
     finally:
         os.unlink(path)
 
@@ -109,9 +114,13 @@ def test_english_prologue_and_chapter_format():
     try:
         result = parse_novel_file(path, language="en")
         assert len(result) == 2
-        assert result[0][1] == "Prologue"
-        assert "Opening scene" in result[0][2]
-        assert "Chapter II" in result[1][1]
+        assert result[0].source_chapter_label == "Prologue"
+        assert result[0].source_chapter_number is None
+        assert result[0].title == ""
+        assert "Opening scene" in result[0].content
+        assert result[1].source_chapter_label == "Chapter II Middle"
+        assert result[1].source_chapter_number == 2
+        assert result[1].title == "Middle"
     finally:
         os.unlink(path)
 
@@ -122,9 +131,12 @@ def test_japanese_chapter_format():
     try:
         result = parse_novel_file(path, language="ja")
         assert len(result) == 2
-        assert result[0][1] == "プロローグ"
-        assert "始まり" in result[0][2]
-        assert "第1話" in result[1][1]
+        assert result[0].source_chapter_label == "プロローグ"
+        assert result[0].title == ""
+        assert "始まり" in result[0].content
+        assert result[1].source_chapter_label == "第1話 出会い"
+        assert result[1].source_chapter_number == 1
+        assert result[1].title == "出会い"
     finally:
         os.unlink(path)
 
@@ -135,9 +147,12 @@ def test_korean_chapter_format():
     try:
         result = parse_novel_file(path, language="ko")
         assert len(result) == 2
-        assert result[0][1] == "프롤로그"
-        assert "시작이다" in result[0][2]
-        assert "제1장" in result[1][1]
+        assert result[0].source_chapter_label == "프롤로그"
+        assert result[0].title == ""
+        assert "시작이다" in result[0].content
+        assert result[1].source_chapter_label == "제1장 만남"
+        assert result[1].source_chapter_number == 1
+        assert result[1].title == "만남"
     finally:
         os.unlink(path)
 
@@ -148,8 +163,11 @@ def test_special_chapter_types():
     try:
         result = parse_novel_file(path)
         assert len(result) == 2
-        assert "序章" in result[0][1]
-        assert "序章的内容" in result[0][2]
+        assert result[0].source_chapter_label == "序章"
+        assert result[0].title == ""
+        assert "序章的内容" in result[0].content
+        assert result[1].source_chapter_number == 1
+        assert result[1].title == "正文"
     finally:
         os.unlink(path)
 
@@ -160,7 +178,8 @@ def test_single_chapter():
     try:
         result = parse_novel_file(path)
         assert len(result) == 1
-        assert "唯一的内容" in result[0][2]
+        assert result[0].title == "唯一"
+        assert "唯一的内容" in result[0].content
     finally:
         os.unlink(path)
 
@@ -170,7 +189,8 @@ def test_empty_content():
     try:
         result = parse_novel_file(path)
         assert len(result) == 1
-        assert result[0][2] == ""
+        assert result[0].title == ""
+        assert result[0].content == ""
     finally:
         os.unlink(path)
 
@@ -181,6 +201,7 @@ def test_gbk_encoding():
     try:
         result = parse_novel_file(path)
         assert len(result) == 1
-        assert "第一章" in result[0][1]
+        assert result[0].source_chapter_label == "第一章 测试"
+        assert result[0].title == "测试"
     finally:
         os.unlink(path)

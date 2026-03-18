@@ -27,6 +27,8 @@ describe('useCreateChapter', () => {
       novel_id: novelId,
       chapter_number: 4,
       title: payload.title,
+      source_chapter_label: null,
+      source_chapter_number: null,
       content: payload.content,
       created_at: '2026-02-01T00:00:00Z',
       updated_at: null,
@@ -41,6 +43,8 @@ describe('useCreateChapter', () => {
         novel_id: novelId,
         chapter_number: 3,
         title: '旧第三章',
+        source_chapter_label: null,
+        source_chapter_number: null,
         created_at: '2026-01-31T00:00:00Z',
       },
     ])
@@ -71,6 +75,8 @@ describe('useCreateChapter', () => {
         novel_id: novelId,
         chapter_number: 3,
         title: '旧第三章',
+        source_chapter_label: null,
+        source_chapter_number: null,
         created_at: '2026-01-31T00:00:00Z',
       },
       {
@@ -78,6 +84,8 @@ describe('useCreateChapter', () => {
         novel_id: novelId,
         chapter_number: 4,
         title: '新章',
+        source_chapter_label: null,
+        source_chapter_number: null,
         created_at: '2026-02-01T00:00:00Z',
       },
     ])

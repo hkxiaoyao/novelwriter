@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { describe, expect, it, beforeEach, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
@@ -230,14 +230,18 @@ describe('NovelStudioPage', () => {
         id: 11,
         novel_id: 7,
         chapter_number: 1,
-        title: '第一章',
+        title: '开端',
+        source_chapter_label: '第一章 开端',
+        source_chapter_number: 1,
         created_at: '2026-03-01T00:00:00Z',
       },
       {
         id: 13,
         novel_id: 7,
         chapter_number: 3,
-        title: '第三章',
+        title: '归来',
+        source_chapter_label: '第844章 归来',
+        source_chapter_number: 844,
         created_at: '2026-03-03T00:00:00Z',
       },
     ])
@@ -245,7 +249,9 @@ describe('NovelStudioPage', () => {
       id: chapterNum,
       novel_id: 7,
       chapter_number: chapterNum,
-      title: chapterNum === 3 ? '第三章' : '第一章',
+      title: chapterNum === 3 ? '归来' : '开端',
+      source_chapter_label: chapterNum === 3 ? '第844章 归来' : '第一章 开端',
+      source_chapter_number: chapterNum === 3 ? 844 : 1,
       content: chapterNum === 3 ? '第三章内容' : '第一章内容',
       created_at: '2026-03-03T00:00:00Z',
       updated_at: null,
@@ -272,7 +278,8 @@ describe('NovelStudioPage', () => {
       expect(screen.getByText('第三章内容')).toBeInTheDocument()
     })
 
-    expect(screen.getAllByText('第 3 章').length).toBeGreaterThan(0)
+    expect(screen.getByText('第 3 章')).toBeInTheDocument()
+    expect(screen.getByText('归来')).toBeInTheDocument()
     expect(screen.queryByText('第一章内容')).not.toBeInTheDocument()
     expect(mockGetChapter).toHaveBeenCalledWith(7, 3)
   })
@@ -375,6 +382,129 @@ describe('NovelStudioPage', () => {
     await waitFor(() => {
       expect(screen.getByTestId('continuation-results-stage')).toBeInTheDocument()
     })
+  })
+
+  it('searches chapters by exact internal chapter numbers and titles', async () => {
+    mockListChaptersMeta.mockResolvedValue([
+      {
+        id: 17,
+        novel_id: 7,
+        chapter_number: 17,
+        title: '正主',
+        source_chapter_label: '第十七章 正主',
+        source_chapter_number: 17,
+        created_at: '2026-03-01T00:00:00Z',
+      },
+      {
+        id: 417,
+        novel_id: 7,
+        chapter_number: 417,
+        title: '可真够懒的',
+        source_chapter_label: null,
+        source_chapter_number: null,
+        created_at: '2026-03-01T00:00:00Z',
+      },
+      {
+        id: 420,
+        novel_id: 7,
+        chapter_number: 420,
+        title: '放一块',
+        source_chapter_label: '第420章 放一块',
+        source_chapter_number: 420,
+        created_at: '2026-03-01T00:00:00Z',
+      },
+      {
+        id: 84,
+        novel_id: 7,
+        chapter_number: 84,
+        title: '无奈之举',
+        source_chapter_label: '第八十四章 无奈之举',
+        source_chapter_number: 84,
+        created_at: '2026-03-01T00:00:00Z',
+      },
+      {
+        id: 844,
+        novel_id: 7,
+        chapter_number: 544,
+        title: '还是搬而泣之的好',
+        source_chapter_label: '第844章 还是搬而泣之的好',
+        source_chapter_number: 844,
+        created_at: '2026-03-02T00:00:00Z',
+      },
+    ])
+    mockGetChapter.mockImplementation(async (_novelId: number, chapterNum: number) => ({
+      id: chapterNum,
+      novel_id: 7,
+      chapter_number: chapterNum,
+      title: {
+        17: '正主',
+        84: '第八十四章 无奈之举',
+        417: '可真够懒的',
+        420: '放一块',
+        544: '还是搬而泣之的好',
+      }[chapterNum] ?? '未知章节',
+      source_chapter_label: {
+        17: '第十七章 正主',
+        84: '第八十四章 无奈之举',
+        420: '第420章 放一块',
+        544: '第844章 还是搬而泣之的好',
+      }[chapterNum] ?? null,
+      source_chapter_number: {
+        17: 17,
+        84: 84,
+        420: 420,
+        544: 844,
+      }[chapterNum] ?? null,
+      content: `第${chapterNum}章内容`,
+      created_at: '2026-03-03T00:00:00Z',
+      updated_at: null,
+    }))
+
+    const user = userEvent.setup()
+    const queryClient = createTestQueryClient()
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <MemoryRouter initialEntries={['/novel/7?chapter=84']}>
+          <Routes>
+            <Route element={<NovelShell />}>
+              <Route path="/novel/:novelId" element={<NovelStudioPage />} />
+            </Route>
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('第84章内容')).toBeInTheDocument()
+    })
+
+    const searchInput = screen.getByTestId('studio-rail-search')
+    const chapterRail = within(screen.getByTestId('studio-rail-chapters'))
+
+    await user.type(searchInput, '17')
+
+    expect(chapterRail.getByRole('button', { name: '第 17 章 · 正主' })).toBeInTheDocument()
+    expect(chapterRail.queryByRole('button', { name: '第 417 章 · 可真够懒的' })).not.toBeInTheDocument()
+    expect(chapterRail.queryByRole('button', { name: '第 420 章 · 放一块' })).not.toBeInTheDocument()
+
+    await user.clear(searchInput)
+    await user.type(searchInput, '544')
+
+    expect(chapterRail.getByRole('button', { name: '第 544 章 · 还是搬而泣之的好' })).toBeInTheDocument()
+    expect(chapterRail.queryByRole('button', { name: '第 84 章 · 无奈之举' })).not.toBeInTheDocument()
+
+    await user.clear(searchInput)
+    await user.type(searchInput, '84')
+
+    expect(chapterRail.getByRole('button', { name: '第 84 章 · 无奈之举' })).toBeInTheDocument()
+    expect(chapterRail.queryByRole('button', { name: '第 544 章 · 还是搬而泣之的好' })).not.toBeInTheDocument()
+
+    await user.clear(searchInput)
+    await user.type(searchInput, '无奈')
+
+    expect(chapterRail.getByRole('button', { name: '第 84 章 · 无奈之举' })).toBeInTheDocument()
+    expect(chapterRail.queryByRole('button', { name: '第 544 章 · 还是搬而泣之的好' })).not.toBeInTheDocument()
   })
 
   it('keeps the injection summary rail visible during results-derived studio inspection', async () => {

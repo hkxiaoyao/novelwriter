@@ -23,6 +23,7 @@ import { LENGTH_OPTIONS } from '@/hooks/novel/useContinuationSetupState'
 export function ContinuationSetupStage({
   novelId,
   chapterNum,
+  chapterReference,
   instruction,
   onInstructionChange,
   selectedLength,
@@ -39,6 +40,7 @@ export function ContinuationSetupStage({
 }: {
   novelId: number
   chapterNum: number
+  chapterReference: string | null
   instruction: string
   onInstructionChange: (next: string) => void
   selectedLength: string
@@ -67,7 +69,7 @@ export function ContinuationSetupStage({
         <div className="flex items-center justify-between shrink-0">
           <GlassCard variant="control" className="rounded-xl px-4 py-2">
             <span className="text-sm font-medium text-foreground">
-              从第 {chapterNum} 章继续
+              基于{chapterReference ?? `第 ${chapterNum} 章`}继续
             </span>
           </GlassCard>
           <span className="text-sm text-muted-foreground">

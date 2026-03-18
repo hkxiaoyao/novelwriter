@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import StaticPool, create_engine, event
 from sqlalchemy.orm import sessionmaker
 
+from app.core.parser import ParsedChapter
 from app.database import Base, get_db
 from app.models import Chapter, Novel, User
 
@@ -166,7 +167,12 @@ class TestUploadNovel:
             .all()
         )
         assert [ch.chapter_number for ch in chapters] == [1, 2]
-        assert chapters[0].title.startswith("第一章")
+        assert chapters[0].title == "开端"
+        assert chapters[0].source_chapter_label == "第一章 开端"
+        assert chapters[0].source_chapter_number == 1
+        assert chapters[1].title == "继续"
+        assert chapters[1].source_chapter_label == "第二章 继续"
+        assert chapters[1].source_chapter_number == 2
         assert "第一章内容" in chapters[0].content
 
     def test_upload_normalizes_explicit_language(self, db, tmp_path, monkeypatch):
@@ -451,7 +457,7 @@ class TestUploadNovel:
 
         def fake_parse(path: str, *, language: str | None = None):
             seen["language"] = language
-            return [(1, "Chapter 1", "content")]
+            return [ParsedChapter(title="Opening", content="content", source_chapter_label="Chapter 1 Opening", source_chapter_number=1)]
 
         monkeypatch.setattr(novels_api, "parse_novel_file", fake_parse)
 
@@ -494,7 +500,7 @@ class TestUploadNovel:
 
         def fake_parse(path: str, *, language: str | None = None):
             seen["language"] = language
-            return [(1, "Chapter 1", "content")]
+            return [ParsedChapter(title="Beginning", content="content", source_chapter_label="Chapter 1 Beginning", source_chapter_number=1)]
 
         monkeypatch.setattr(novels_api, "read_novel_file_text", fake_read_text)
         monkeypatch.setattr(novels_api, "parse_novel_file", fake_parse)

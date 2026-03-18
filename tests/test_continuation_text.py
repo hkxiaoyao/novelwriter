@@ -2,6 +2,7 @@ from types import SimpleNamespace
 
 from app.core.continuation_text import (
     append_user_instruction_for_relevance,
+    format_next_chapter_reference,
     format_recent_chapters_for_prompt,
     format_world_context_for_prompt,
 )
@@ -20,6 +21,33 @@ def test_format_recent_chapters_for_prompt_preserves_existing_shape():
     assert "云澈看向远方。" in result
     assert "【第2章：第二章】" in result
     assert "楚月仙静坐不语。" in result
+
+
+def test_format_recent_chapters_for_prompt_uses_internal_heading_when_title_is_blank():
+    chapters = [
+        SimpleNamespace(chapter_number=1, title="", source_chapter_label="序章", content="云澈看向远方。"),
+    ]
+
+    result = format_recent_chapters_for_prompt(chapters)
+
+    assert "【第1章】" in result
+    assert "云澈看向远方。" in result
+
+
+def test_format_recent_chapters_for_prompt_uses_internal_heading_even_with_source_metadata():
+    chapters = [
+        SimpleNamespace(
+            chapter_number=2,
+            title="归来",
+            source_chapter_label="第844章 归来",
+            content="楚月仙静坐不语。",
+        ),
+    ]
+
+    result = format_recent_chapters_for_prompt(chapters)
+
+    assert "【第2章：归来】" in result
+    assert "【第844章 归来】" not in result
 
 
 def test_format_recent_chapters_en_locale():
@@ -43,6 +71,27 @@ def test_append_user_instruction_en_locale():
     )
     assert "【User Instruction】" in result
     assert "Continue the inner monologue" in result
+
+
+def test_format_next_chapter_reference_uses_internal_chapter_numbering():
+    assert format_next_chapter_reference(
+        3,
+        latest_source_chapter_label="第844章 归来",
+        latest_source_chapter_number=844,
+        locale="zh",
+    ) == "第3章"
+    assert format_next_chapter_reference(
+        3,
+        latest_source_chapter_label="Chapter 17 Return",
+        latest_source_chapter_number=17,
+        locale="en",
+    ) == "Chapter 3"
+    assert format_next_chapter_reference(
+        3,
+        latest_source_chapter_label=None,
+        latest_source_chapter_number=None,
+        locale="zh",
+    ) == "第3章"
 
 
 def test_format_world_context_for_prompt_renders_sections_without_constraints_inline():

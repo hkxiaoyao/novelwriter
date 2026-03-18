@@ -4,15 +4,15 @@ import { WorldBuildPanel } from '@/components/world-model/shared/WorldBuildPanel
 
 export function StudioAssistantPanel({
   novelId,
-  activeChapterNum,
-  latestChapterNum,
+  activeChapterReference,
+  latestChapterReference,
   chapterCount,
   contextualCopilotAction,
   className,
 }: {
   novelId: number
-  activeChapterNum: number | null
-  latestChapterNum: number | null
+  activeChapterReference: string | null
+  latestChapterReference: string | null
   chapterCount: number
   contextualCopilotAction?: {
     title: string
@@ -21,9 +21,9 @@ export function StudioAssistantPanel({
   }
   className?: string
 }) {
-  const focusLabel = activeChapterNum === null ? '等待选择章节' : `第 ${activeChapterNum} 章`
+  const focusLabel = activeChapterReference ?? '等待选择章节'
   const continuationLabel =
-    latestChapterNum === null ? '尚未形成续写入口' : `仅最新章续写 · 第 ${latestChapterNum} 章`
+    latestChapterReference === null ? '尚未形成续写入口' : `仅最新章续写 · ${latestChapterReference}`
 
   return (
     <div className={cn('flex h-full min-h-0 flex-col gap-3', className)} data-testid="studio-assistant-rail">

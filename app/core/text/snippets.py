@@ -100,7 +100,7 @@ _ZH: dict[SnippetKey, str] = {
         "你的续写必须在语体、口吻、句式和用词上与下方 <recent_chapters> 完全一致，"
         "开篇就要无缝衔接原文风格。"
     ),
-    SnippetKey.CONTINUE_INSTRUCTION: "请续写第{n}章：",
+    SnippetKey.CONTINUE_INSTRUCTION: "请续写{reference}：",
     SnippetKey.SECTION_SYSTEMS: "〈世界体系〉",
     SnippetKey.SECTION_ENTITIES: "〈角色与事物〉",
     SnippetKey.SECTION_RELATIONSHIPS: "〈人物关系〉",
@@ -147,7 +147,7 @@ _EN: dict[SnippetKey, str] = {
         "and diction of the <recent_chapters> below. "
         "Start seamlessly from where the original left off."
     ),
-    SnippetKey.CONTINUE_INSTRUCTION: "Continue writing Chapter {n}:",
+    SnippetKey.CONTINUE_INSTRUCTION: "Continue writing {reference}:",
     SnippetKey.SECTION_SYSTEMS: "〈World Systems〉",
     SnippetKey.SECTION_ENTITIES: "〈Characters & Entities〉",
     SnippetKey.SECTION_RELATIONSHIPS: "〈Relationships〉",
@@ -196,7 +196,7 @@ _JA: dict[SnippetKey, str] = {
         "下記 <recent_chapters> と完全に一致させてください。"
         "冒頭から原文のスタイルにシームレスに接続してください。"
     ),
-    SnippetKey.CONTINUE_INSTRUCTION: "第{n}章の続きを書いてください：",
+    SnippetKey.CONTINUE_INSTRUCTION: "{reference}の続きを書いてください：",
     SnippetKey.SECTION_SYSTEMS: "〈世界体系〉",
     SnippetKey.SECTION_ENTITIES: "〈登場人物・事物〉",
     SnippetKey.SECTION_RELATIONSHIPS: "〈人物関係〉",
@@ -244,7 +244,7 @@ _KO: dict[SnippetKey, str] = {
         "아래 <recent_chapters>와 완전히 일치해야 합니다. "
         "첫 문장부터 원문의 스타일에 자연스럽게 이어 주세요."
     ),
-    SnippetKey.CONTINUE_INSTRUCTION: "제{n}장 이어쓰기:",
+    SnippetKey.CONTINUE_INSTRUCTION: "{reference} 이어쓰기:",
     SnippetKey.SECTION_SYSTEMS: "〈세계 체계〉",
     SnippetKey.SECTION_ENTITIES: "〈등장인물 및 사물〉",
     SnippetKey.SECTION_RELATIONSHIPS: "〈인물 관계〉",

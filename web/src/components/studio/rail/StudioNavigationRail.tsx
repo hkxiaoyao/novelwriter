@@ -17,7 +17,7 @@ export function StudioNavigationRail({
   chapterCount,
   onCreateChapter,
   isCreating,
-  latestChapterNum,
+  latestChapterReference,
   onContinuation,
   onOpenAtlas,
   activeStage,
@@ -31,7 +31,7 @@ export function StudioNavigationRail({
   chapterCount: number
   onCreateChapter?: () => void
   isCreating?: boolean
-  latestChapterNum: number | null
+  latestChapterReference: string | null
   onContinuation: () => void
   onOpenAtlas: () => void
   activeStage: NovelShellStage | null
@@ -64,7 +64,7 @@ export function StudioNavigationRail({
       <div className="flex min-h-0 flex-1 flex-col gap-4 px-3 py-4">
         <StudioModeRailSection
           activeStage={activeStage}
-          latestChapterNum={latestChapterNum}
+          latestChapterReference={latestChapterReference}
           onContinuation={onContinuation}
           onOpenAtlas={onOpenAtlas}
         />

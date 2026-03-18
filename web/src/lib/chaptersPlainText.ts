@@ -1,48 +1,133 @@
 import type { Chapter } from '@/types/api'
 
-export type ChapterLike = Pick<Chapter, 'chapter_number' | 'title' | 'content'>
+export type ChapterIdentityLike = Pick<
+  Chapter,
+  'chapter_number' | 'title' | 'source_chapter_label' | 'source_chapter_number'
+>
+export type ChapterLike = ChapterIdentityLike & Pick<Chapter, 'content'>
 
-export function stripLeadingChapterHeading(title: string): string {
-  const t = title.trim()
-  if (!t) return ''
+const SEARCH_IGNORED_CHARS = /[\s·•\-—–:：、.．]+/g
+const HEADING_REST_SEPARATOR_RE = /^[\s·•\-—–:：、.．]+/
+const FULLWIDTH_DIGIT_RE = /[０-９]/g
+const NUMERIC_TOKEN_RE = /\d+/g
+const NUMBERED_CJK_HEADING_RE = /^(\s*第\s*[0-9０-９零〇一二三四五六七八九十百千万兩两壱弐参肆伍陆陸柒捌玖拾佰仟萬貳叁]+\s*[章回节卷篇幕話话節編编巻卷])(.*)$/i
+const KOREAN_NUMBERED_HEADING_RE = /^(\s*제\s*[0-9０-９]+\s*(?:장|화|편|막))(.*)$/i
+const EN_NUMBERED_HEADING_RE = /^(\s*chapter\s+(?:\d+|[ivxlcdm]+))(.*)$/i
+const SPECIAL_HEADING_RE = /^(\s*(?:序[章言]|楔子|尾声|尾聲|后记|後記|番外(?:篇)?|终章|終章|プロローグ|エピローグ|外伝|番外編?|後書き|あとがき|序章|終章|프롤로그|에필로그|외전|후기|서장|종장|prologue|epilogue|afterword|appendix|interlude|preface))(.*)$/i
 
-  // Match both Arabic digits and Chinese numerals.
-  // Examples:
-  // - 第1章 开端
-  // - 第一章 开端
-  // - 第 12 回 归来
-  const m = t.match(/^第\s*([0-9零一二三四五六七八九十百千万两〇]+)\s*[章回节]\s*/i)
-  if (m) {
-    let rest = t.slice(m[0].length).trim()
-    rest = rest.replace(/^[·•\-—–:：、.．\s]+/, '').trim()
-    return rest
-  }
-
-  // English-style headings: "Chapter 1 ..."
-  const m2 = t.match(/^chapter\s+\d+\s*/i)
-  if (m2) {
-    let rest = t.slice(m2[0].length).trim()
-    rest = rest.replace(/^[·•\-—–:：、.．\s]+/, '').trim()
-    return rest
-  }
-
-  return t
+type ParsedHeading = {
+  prefix: string
+  title: string
 }
 
-/** Format chapter label: avoid "第 94 章 · 第93章虎魄" duplication. */
-export function formatChapterLabel(
-  chapterNumber: number,
-  title: string | null | undefined
-): string {
+function normalizeFullwidthDigits(text: string): string {
+  return text.replace(FULLWIDTH_DIGIT_RE, (digit) => String.fromCharCode(digit.charCodeAt(0) - 0xFEE0))
+}
+
+function normalizeChapterSearchText(text: string): string {
+  return normalizeFullwidthDigits(text).toLowerCase().replace(SEARCH_IGNORED_CHARS, '')
+}
+
+function normalizeNumericToken(token: string): string {
+  const normalized = normalizeFullwidthDigits(token).replace(/^0+(?=\d)/, '')
+  return normalized || '0'
+}
+
+function parseNumericQuery(query: string): string | null {
+  const normalized = normalizeFullwidthDigits(query.trim())
+  if (!/^\d+$/.test(normalized)) return null
+  return normalizeNumericToken(normalized)
+}
+
+function extractNumericTokens(text: string): string[] {
+  const matches = normalizeFullwidthDigits(text).match(NUMERIC_TOKEN_RE)
+  if (!matches) return []
+  return matches.map(normalizeNumericToken)
+}
+
+function cleanHeadingRest(rest: string): string {
+  return rest.trim().replace(HEADING_REST_SEPARATOR_RE, '').trim()
+}
+
+function parseChapterHeading(label: string): ParsedHeading | null {
+  const trimmed = label.trim()
+  if (!trimmed) return null
+
+  for (const pattern of [
+    NUMBERED_CJK_HEADING_RE,
+    KOREAN_NUMBERED_HEADING_RE,
+    EN_NUMBERED_HEADING_RE,
+    SPECIAL_HEADING_RE,
+  ]) {
+    const match = trimmed.match(pattern)
+    if (!match) continue
+    return {
+      prefix: match[1].trim(),
+      title: cleanHeadingRest(match[2] ?? ''),
+    }
+  }
+
+  return null
+}
+
+export function stripLeadingChapterHeading(title: string): string {
+  const parsed = parseChapterHeading(title)
+  if (!parsed) return title.trim()
+  return parsed.title
+}
+
+export function getChapterDisplayTitle(title: string | null | undefined): string {
+  return stripLeadingChapterHeading(title ?? '')
+}
+
+function formatInternalChapterLabel(chapterNumber: number, title: string | null | undefined): string {
   const base = `第 ${chapterNumber} 章`
-  const t = title ?? ''
-  const rest = stripLeadingChapterHeading(t)
+  const rest = getChapterDisplayTitle(title)
   if (!rest) return base
   return `${base} · ${rest}`
 }
 
+export function formatChapterLabel(chapter: ChapterIdentityLike): string {
+  return formatInternalChapterLabel(chapter.chapter_number, chapter.title)
+}
+
+export function formatChapterBadgeLabel(chapter: ChapterIdentityLike): string {
+  return formatInternalChapterLabel(chapter.chapter_number, null)
+}
+
+export function matchesChapterSearch(
+  chapter: ChapterIdentityLike,
+  query: string,
+): boolean {
+  const rawQuery = query.trim()
+  if (!rawQuery) return true
+
+  const numericQuery = parseNumericQuery(rawQuery)
+  if (numericQuery !== null) {
+    const numericCandidates = new Set<string>()
+
+    numericCandidates.add(normalizeNumericToken(String(chapter.chapter_number)))
+
+    for (const text of [formatChapterLabel(chapter), getChapterDisplayTitle(chapter.title)]) {
+      for (const token of extractNumericTokens(text)) {
+        numericCandidates.add(token)
+      }
+    }
+
+    return numericCandidates.has(numericQuery)
+  }
+
+  const normalizedQuery = normalizeChapterSearchText(rawQuery)
+  const candidates = [
+    normalizeChapterSearchText(formatChapterLabel(chapter)),
+    normalizeChapterSearchText(getChapterDisplayTitle(chapter.title)),
+  ]
+
+  return candidates.some((candidate) => candidate.includes(normalizedQuery))
+}
+
 export function serializeChaptersToPlainText(chapters: ChapterLike[]): string {
   return chapters
-    .map((c) => `${formatChapterLabel(c.chapter_number, c.title)}\n\n${c.content}`)
+    .map((chapter) => `${formatChapterLabel(chapter)}\n\n${chapter.content}`)
     .join('\n\n---\n\n')
 }

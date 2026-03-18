@@ -24,7 +24,13 @@ import { WorldGenerationDialog } from '@/components/world-model/shared/WorldGene
 import { LABELS } from '@/constants/labels'
 import { formatRelativeTime } from '@/lib/formatRelativeTime'
 import { downloadTextFile } from '@/lib/downloadTextFile'
-import { formatChapterLabel, serializeChaptersToPlainText, stripLeadingChapterHeading } from '@/lib/chaptersPlainText'
+import {
+  formatChapterBadgeLabel,
+  formatChapterLabel,
+  getChapterDisplayTitle,
+  matchesChapterSearch,
+  serializeChaptersToPlainText,
+} from '@/lib/chaptersPlainText'
 import { useDebouncedAutoSave } from '@/hooks/useDebouncedAutoSave'
 import { useContinuationSetupState } from '@/hooks/novel/useContinuationSetupState'
 import { dismissWorldOnboarding, isWorldOnboardingDismissed } from '@/lib/worldOnboardingStorage'
@@ -168,6 +174,8 @@ export function NovelStudioPage() {
     return chaptersMeta[0]?.chapter_number ?? null
   }, [chaptersMeta, routeState.chapterNum])
   const latestChapterNum = chaptersMeta.length > 0 ? chaptersMeta[chaptersMeta.length - 1].chapter_number : null
+  const latestChapterMeta = chaptersMeta.length > 0 ? chaptersMeta[chaptersMeta.length - 1] : null
+  const latestChapterReference = latestChapterMeta ? formatChapterBadgeLabel(latestChapterMeta) : null
 
   // Continuation setup state hoisted at page level so it survives stage mount/unmount.
   const continuationState = useContinuationSetupState(novelId, latestChapterNum)
@@ -244,8 +252,7 @@ export function NovelStudioPage() {
 
   const filteredChapters = (() => {
     if (!searchQuery.trim()) return chaptersMeta
-    const q = searchQuery.toLowerCase()
-    return chaptersMeta.filter(c => (c.title ?? '').toLowerCase().includes(q))
+    return chaptersMeta.filter((chapterMeta) => matchesChapterSearch(chapterMeta, searchQuery))
   })()
 
   useEffect(() => {
@@ -302,7 +309,7 @@ export function NovelStudioPage() {
 
   const handleDeleteChapter = () => {
     if (activeChapterNum === null) return
-    if (!window.confirm(`确定要删除第 ${activeChapterNum} 章吗？此操作无法撤销。`)) return
+    if (!window.confirm(`确定要删除${activeChapterReference ?? `第 ${activeChapterNum} 章`}吗？此操作无法撤销。`)) return
     deleteChapter.mutate(activeChapterNum, {
       onSuccess: () => {
         cancelAutoSave()
@@ -656,7 +663,9 @@ export function NovelStudioPage() {
   }
 
   const wordCount = countWords(editMode ? editorContent : (chapter?.content ?? ''))
-  const displayTitle = currentMeta?.title ? stripLeadingChapterHeading(currentMeta.title) : ''
+  const currentChapterIdentity = chapter ?? currentMeta ?? null
+  const displayTitle = currentChapterIdentity ? getChapterDisplayTitle(currentChapterIdentity.title) : ''
+  const activeChapterReference = currentChapterIdentity ? formatChapterBadgeLabel(currentChapterIdentity) : null
 
   return (
     <PageShell className="h-screen" navbarProps={{ position: 'static' }} mainClassName="min-h-0 flex-1 overflow-hidden">
@@ -680,7 +689,7 @@ export function NovelStudioPage() {
               onSearchQueryChange={setSearchQuery}
               chapters={filteredChapters.map(c => ({
                 chapterNumber: c.chapter_number,
-                label: formatChapterLabel(c.chapter_number, c.title),
+                label: formatChapterLabel(c),
               }))}
               selectedChapterNumber={activeChapterNum}
               onSelectChapter={(chapterNumber) => {
@@ -694,7 +703,7 @@ export function NovelStudioPage() {
               chapterCount={chaptersMeta.length}
               onCreateChapter={handleCreateChapter}
               isCreating={createChapter.isPending}
-              latestChapterNum={latestChapterNum}
+              latestChapterReference={latestChapterReference}
               onContinuation={() => {
                 // Save-first: if editing, flush autosave before switching stage
                 if (editMode) {
@@ -722,11 +731,12 @@ export function NovelStudioPage() {
           <ArtifactStage className="flex-1 min-w-0 flex flex-col rounded-[16px] border border-[var(--nw-glass-border)] bg-[var(--nw-glass-bg)] backdrop-blur-[24px] shadow-[var(--nw-copilot-panel-shadow)] overflow-hidden">
             {hasResultsContext ? (
               <div className={activeStage === 'results' ? 'flex min-h-0 flex-1 flex-col' : 'hidden'}>
-                <ContinuationResultsStage
-                  novelId={novelId}
-                  activeChapterNum={activeChapterNum}
-                  showInjectionSummaryRail={showInjectionSummaryRail}
-                  onToggleInjectionSummaryRail={() => {
+              <ContinuationResultsStage
+                novelId={novelId}
+                activeChapterNum={activeChapterNum}
+                activeChapterReference={activeChapterReference}
+                showInjectionSummaryRail={showInjectionSummaryRail}
+                onToggleInjectionSummaryRail={() => {
                     const nextSearchParams = setNovelShellArtifactPanelSearchParams(
                       new URLSearchParams(location.search),
                       showInjectionSummaryRail ? null : injectionSummaryPanelState,
@@ -746,6 +756,7 @@ export function NovelStudioPage() {
               <ContinuationSetupStage
                 novelId={novelId}
                 chapterNum={latestChapterNum}
+                chapterReference={latestChapterReference}
                 instruction={continuationState.instruction}
                 onInstructionChange={continuationState.setInstruction}
                 selectedLength={continuationState.selectedLength}
@@ -834,7 +845,7 @@ export function NovelStudioPage() {
                         <>
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="inline-flex items-center rounded-full border border-[var(--nw-glass-border)] bg-background/20 px-2.5 py-1 text-[11px] font-medium text-foreground/88">
-                              第 {currentMeta.chapter_number} 章
+                              {formatChapterBadgeLabel(currentChapterIdentity ?? currentMeta)}
                             </span>
                             <span className="inline-flex items-center rounded-full border border-[var(--nw-glass-border)] bg-background/20 px-2.5 py-1 text-[11px] text-muted-foreground">
                               {editMode ? '编辑中' : '阅读中'}
@@ -1018,8 +1029,8 @@ export function NovelStudioPage() {
             <NovelShellRail className="w-[360px] shrink-0 flex flex-col min-h-0 h-full rounded-[16px] border border-[var(--nw-glass-border)] bg-[var(--nw-glass-bg)] backdrop-blur-[24px] shadow-[var(--nw-copilot-panel-shadow)] overflow-hidden p-3">
               <StudioAssistantPanel
                 novelId={novelId}
-                activeChapterNum={activeChapterNum}
-                latestChapterNum={latestChapterNum}
+                activeChapterReference={activeChapterReference}
+                latestChapterReference={latestChapterReference}
                 chapterCount={chaptersMeta.length}
                 contextualCopilotAction={contextualCopilotAction}
               />

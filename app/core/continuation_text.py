@@ -6,9 +6,49 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import Any, Mapping, Sequence
 
 from app.core.text.snippets import SnippetKey, get_snippet
+
+
+_TRAILING_CHAPTER_SEPARATOR_RE = re.compile(r"[:：]\s*】$")
+def format_chapter_heading_for_prompt(
+    chapter_number: int | str,
+    title: str | None,
+    *,
+    locale: str | None = None,
+    source_chapter_label: str | None = None,
+) -> str:
+    del source_chapter_label
+
+    effective_title = str(title or "").strip()
+    heading = get_snippet(SnippetKey.CHAPTER_HEADING_FMT, locale).format(
+        n=chapter_number,
+        title=effective_title,
+    )
+    if effective_title:
+        return heading
+    return _TRAILING_CHAPTER_SEPARATOR_RE.sub("】", heading)
+
+def _format_generic_chapter_reference(number: int, *, locale: str | None = None) -> str:
+    normalized_locale = (locale or "").lower()
+    if normalized_locale.startswith("en"):
+        return f"Chapter {number}"
+    if normalized_locale.startswith("ko"):
+        return f"제{number}장"
+    return f"第{number}章"
+
+
+def format_next_chapter_reference(
+    internal_next_chapter: int,
+    *,
+    latest_source_chapter_label: str | None = None,
+    latest_source_chapter_number: int | None = None,
+    locale: str | None = None,
+) -> str:
+    del latest_source_chapter_label, latest_source_chapter_number
+    return _format_generic_chapter_reference(internal_next_chapter, locale=locale)
 
 
 def format_recent_chapters_for_prompt(
@@ -16,9 +56,13 @@ def format_recent_chapters_for_prompt(
     *,
     locale: str | None = None,
 ) -> str:
-    fmt = get_snippet(SnippetKey.CHAPTER_HEADING_FMT, locale)
     return "\n\n".join(
-        fmt.format(n=getattr(ch, 'chapter_number', ''), title=getattr(ch, 'title', ''))
+        format_chapter_heading_for_prompt(
+            getattr(ch, 'chapter_number', ''),
+            getattr(ch, 'title', ''),
+            locale=locale,
+            source_chapter_label=getattr(ch, 'source_chapter_label', None),
+        )
         + f"\n{getattr(ch, 'content', '')}"
         for ch in recent_chapters
     )
